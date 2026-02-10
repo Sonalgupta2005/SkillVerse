@@ -4,35 +4,94 @@ const SwapRequest = require('../models/SwapRequest');
 const User = require('../models/User');
 
 // POST /api/swaps - Create a swap request
+// POST /api/swaps - Create a swap request
 const createSwapRequest = async (req, res) => {
   const { toUser, offeredSkill, wantedSkill, message } = req.body;
 
+  // 1️⃣ Prevent self request
   if (toUser.toString() === req.user._id.toString()) {
-    res.status(400);
-    throw new Error('Cannot send swap request to yourself');
+    return res.status(400).json({
+      message: 'Cannot send swap request to yourself'
+    });
   }
 
+  // 2️⃣ Validate recipient
   const recipient = await User.findById(toUser);
   if (!recipient || recipient.banned) {
-    res.status(404);
-    throw new Error('Recipient user not found or banned');
-  }
-  if (recipient.profileVisibility === 'private') {
-    res.status(403);
-    throw new Error('Recipient profile is private');
+    return res.status(404).json({
+      message: 'Recipient user not found or banned'
+    });
   }
 
-  const swap = await SwapRequest.create({
+  if (recipient.profileVisibility === 'private') {
+    return res.status(403).json({
+      message: 'Recipient profile is private'
+    });
+  }
+
+  // 3️⃣ Find any existing swap (direction + skill agnostic)
+  const existingSwap = await SwapRequest.findOne({
+    $or: [
+      {
+        fromUser: req.user._id,
+        toUser,
+        offeredSkill,
+        wantedSkill
+      },
+      {
+        fromUser: toUser,
+        toUser: req.user._id,
+        offeredSkill: wantedSkill,
+        wantedSkill: offeredSkill
+      }
+    ]
+  }).sort({ createdAt: -1 });
+
+  // 4️⃣ Enforce rules
+  if (existingSwap) {
+    // ❌ Permanent block
+    if (['pending', 'accepted', 'rejected'].includes(existingSwap.status)) {
+      return res.status(409).json({
+        message:
+          existingSwap.status === 'rejected'
+            ? 'This swap request was declined and cannot be resent'
+            : 'A swap request for this skill exchange already exists'
+      });
+    }
+
+    // ⏳ Cancelled → cooldown
+    if (existingSwap.status === 'cancelled') {
+      const COOLDOWN_HOURS = 48;
+      const cooldownMs = COOLDOWN_HOURS * 60 * 60 * 1000;
+
+      const elapsed =
+        Date.now() - new Date(existingSwap.updatedAt).getTime();
+
+      if (elapsed < cooldownMs) {
+        const remainingHours = Math.ceil(
+          (cooldownMs - elapsed) / (60 * 60 * 1000)
+        );
+
+        return res.status(429).json({
+          message: `You can resend this swap request after ${remainingHours} hours`
+        });
+      }
+    }
+  }
+
+  // 5️⃣ Create swap
+   const swap = await SwapRequest.create({
     fromUser: req.user._id,
     toUser,
     offeredSkill,
     wantedSkill,
     message: message || '',
-    status: 'pending',
+    status: 'pending'
   });
 
   res.status(201).json(swap);
 };
+
 
 // GET /api/swaps/me - Get all swap requests related to current user
 const getMySwaps = async (req, res) => {
@@ -64,7 +123,7 @@ const updateSwapRequest = async (req, res) => {
   }
 
   if (status) {
-    if (!['pending', 'accepted', 'rejected'].includes(status)) {
+    if (!['pending', 'accepted', 'rejected','cancelled'].includes(status)) {
       res.status(400);
       throw new Error('Invalid status value');
     }
@@ -73,6 +132,15 @@ const updateSwapRequest = async (req, res) => {
       if (req.user._id.toString() !== swap.toUser.toString()) {
         res.status(403);
         throw new Error('Only recipient can accept or reject the swap request');
+      }
+      if (swap.status !== 'pending') {
+        res.status(400);
+        throw new Error('Swap request has already been processed');
+      }
+    }if (['cancelled'].includes(status)) {
+      if (req.user._id.toString() !== swap.fromUser.toString()) {
+        res.status(403);
+        throw new Error('Only user can cancel the swap request');
       }
       if (swap.status !== 'pending') {
         res.status(400);

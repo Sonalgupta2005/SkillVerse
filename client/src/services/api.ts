@@ -10,6 +10,10 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  avatar?: string;
+  completedSwaps: number;
+  bio?: string;
+  rating: number;
   location?: string;
   profilePhoto?: string;
   skillsOffered: Skill[];
@@ -27,6 +31,18 @@ export interface AuthResponse {
   message: string;
   success?: boolean;
 }
+export interface Message {
+  _id: string;
+  swapId: string;
+  sender: {
+    _id: string;
+    name: string;
+    avatar?: string;
+  };
+  content: string;
+  createdAt: string;
+}
+
 
 class ApiService {
   private getHeaders() {
@@ -184,12 +200,13 @@ class ApiService {
         'Content-Type': 'application/json'
       }
     });
-
+    
     if (!response.ok) {
       throw new Error('Failed to fetch profiles');
     }
 
     const data = await response.json();
+
     return {
       success: true,
       users: data.users,
@@ -262,12 +279,12 @@ class ApiService {
       headers: this.getHeaders(),
       credentials: 'include',
     });
-
     if (!response.ok) {
       return { sentSwaps: [], receivedSwaps: [] };
     }
 
     const data = await response.json();
+    // console.log('My swaps data:', data);
     return {
       sentSwaps: data.sentSwaps || [],
       receivedSwaps: data.receivedSwaps || []
@@ -279,7 +296,7 @@ class ApiService {
 
 
   // Update swap: PUT /api/swaps/:id with { status }
-  async updateSwapStatus(swapId: string, status: 'pending' | 'accepted' | 'rejected'): Promise<{ success: boolean; message: string }> {
+  async updateSwapStatus(swapId: string, status: 'pending' | 'accepted' | 'rejected' | 'cancelled'): Promise<{ success: boolean; message: string }> {
     try {
       const response = await fetch(`${API_BASE_URL}/swaps/${swapId}`, {
         method: 'PUT',
@@ -292,8 +309,8 @@ class ApiService {
         return { success: false, message: errData.message || 'Failed to update swap status.' };
       }
       return { success: true, message: 'Swap updated.' };
-    } catch {
-      return { success: false, message: 'Failed to update swap status. Please try again.' };
+    } catch(err) {
+      return { success: false, message: err.message || 'Failed to update swap. Please try again.' };
     }
   }
 
@@ -347,10 +364,55 @@ class ApiService {
   }
 
   // Legacy methods for compatibility - remove these once frontend is updated
-  async sendMessage(recipientId: string, content: string): Promise<{ success: boolean; message: string }> {
-    // This method is no longer used in the new backend structure
-    return { success: false, message: 'Messaging functionality has been replaced with swap requests.' };
+ async getMessagesBySwapId(
+  swapId: string
+): Promise<Message[]> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/swaps/${swapId}/messages`,
+      {
+        headers: this.getHeaders(),
+        credentials: "include"
+      }
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.messages || [];
+  } catch {
+    return [];
   }
+}
+async sendMessage(
+  swapId: string,
+  content: string
+): Promise<Message | null> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/swaps/${swapId}/messages`,
+      {
+        method: "POST",
+        headers: this.getHeaders(),
+        credentials: "include",
+        body: JSON.stringify({ content })
+      }
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.message || null;
+  } catch {
+    return null;
+  }
+}
+
+
 }
 
 export const apiService = new ApiService();

@@ -40,9 +40,9 @@ export const CTASection = () => {
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
                 <Button 
-                  variant="outline" 
+                  variant="secondary" 
                   size="xl" 
-                  className="border-white/30 text-white hover:bg-white/10"
+                  className="bg-white text-secondary hover:bg-white/90 group"
                 >
                   Learn More
                 </Button>

@@ -6,6 +6,7 @@ const userRoutes = require('./routes/userRoutes');
 const swapRoutes = require('./routes/swapRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const messageRoutes = require('./routes/messageRoutes');
 const dotenv = require('dotenv');
 const cors=require('cors');
 
@@ -28,6 +29,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/swaps', swapRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api', messageRoutes);
 
 // Error handler
 app.use(errorMiddleware);

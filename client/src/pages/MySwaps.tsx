@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SwapRequestCard } from "@/components/SwapRequestCard";
@@ -6,52 +6,59 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ArrowUpDown, Clock, CheckCircle, Users } from "lucide-react";
-import { apiService } from "@/services/api";
+import { useMySwaps } from "@/hooks/useMySwaps";
+import { useUpdateSwap } from "@/hooks/useUpdateSwap";
+import { useAuth } from "@/contexts/AuthContext";
 
-
-
+export type SwapStatus = "pending" | "accepted" | "rejected" | "cancelled";
 const MySwaps = () => {
-  const [activeTab, setActiveTab] = useState("received");
-  const [swaps, setSwaps] = useState({ sentSwaps: [], receivedSwaps: [] });
+  const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
 
-useEffect(() => {
-  const fetchSwaps = async () => {
-    const data = await apiService.getMySwaps(); // { sentSwaps, receivedSwaps }
-    setSwaps(data);
-  };
-  fetchSwaps();
-}, []);
+  /* =======================
+     DATA (SINGLE SOURCE)
+     ======================= */
+  const { data: swaps = [], isLoading } = useMySwaps();
+  const { mutate: updateSwap } = useUpdateSwap();
 
+  const {user}=useAuth();
+  const sentSwaps = swaps.filter(
+    swap => swap.fromUser._id === user?._id
+  );
 
+  const receivedSwaps = swaps.filter(
+    swap => swap.toUser._id === user?._id
+  );
+
+  /* =======================
+     STATS
+     ======================= */
   const stats = {
-    total: swaps.sentSwaps.length + swaps.receivedSwaps.length,
-    pending: [...swaps.sentSwaps, ...swaps.receivedSwaps].filter(s => s.status === 'pending').length,
-    completed: [...swaps.sentSwaps, ...swaps.receivedSwaps].filter(s => s.status === 'completed').length,
+    total: swaps.length,
+    pending: swaps.filter(s => s.status === "pending").length,
+    completed: swaps.filter(s => s.status === "accepted").length
   };
 
-  const handleAccept = (id: string) => {
-    console.log(`Accepting swap ${id}`);
+  /* =======================
+     ACTIONS
+     ======================= */
+  const handleUpdate = (id: string, status: SwapStatus) => {
+    updateSwap({ id, status });
   };
 
-  const handleReject = (id: string) => {
-    console.log(`Rejecting swap ${id}`);
+  const handleMessage = (swapId: string) => {
+    console.log(`Open chat for swap ${swapId}`);
   };
 
-  const handleCancel = (id: string) => {
-    console.log(`Cancelling swap ${id}`);
-  };
-
-  const handleMessage = (id: string) => {
-    console.log(`Opening message for swap ${id}`);
-  };
-
+  /* =======================
+     RENDER
+     ======================= */
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
-          {/* Page Header */}
+          {/* Header */}
           <div className="text-center space-y-4">
             <h1 className="text-3xl md:text-4xl font-bold">
               My{" "}
@@ -60,54 +67,45 @@ useEffect(() => {
               </span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Manage your skill exchange requests, track progress, and connect with your learning partners.
+              Manage your skill exchange requests.
             </p>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats */}
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="shadow-soft">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Swaps</CardTitle>
+            <Card>
+              <CardHeader className="flex flex-row justify-between pb-2">
+                <CardTitle className="text-sm">Total Swaps</CardTitle>
                 <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.total}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active exchanges
-                </p>
               </CardContent>
             </Card>
 
-            <Card className="shadow-soft">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <Card>
+              <CardHeader className="flex flex-row justify-between pb-2">
+                <CardTitle className="text-sm">Pending</CardTitle>
                 <Clock className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.pending}</div>
-                <p className="text-xs text-muted-foreground">
-                  Awaiting response
-                </p>
               </CardContent>
             </Card>
 
-            <Card className="shadow-soft">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+            <Card>
+              <CardHeader className="flex flex-row justify-between pb-2">
+                <CardTitle className="text-sm">Completed</CardTitle>
                 <CheckCircle className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.completed}</div>
-                <p className="text-xs text-muted-foreground">
-                  Successful swaps
-                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Swap Requests */}
-          <Card className="shadow-medium">
+          {/* Requests */}
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 mr-2 text-primary" />
@@ -115,57 +113,65 @@ useEffect(() => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="received" className="flex items-center space-x-2">
-                    <span>Received</span>
-                    {swaps.receivedSwaps.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {swaps.receivedSwaps.length}
-                      </Badge>
+                  <TabsTrigger value="received">
+                    Received
+                    {receivedSwaps.length > 0 && (
+                      <Badge className="ml-2">{receivedSwaps.length}</Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="sent" className="flex items-center space-x-2">
-                    <span>Sent</span>
-                    {swaps.sentSwaps.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {swaps.sentSwaps.length}
-                      </Badge>
+                  <TabsTrigger value="sent">
+                    Sent
+                    {sentSwaps.length > 0 && (
+                      <Badge className="ml-2">{sentSwaps.length}</Badge>
                     )}
                   </TabsTrigger>
                 </TabsList>
 
+                {/* RECEIVED */}
                 <TabsContent value="received" className="mt-6 space-y-4">
-                  {swaps.receivedSwaps.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No received requests yet.</p>
-                    </div>
+                  {isLoading ? (
+                    <p className="text-muted-foreground text-center">
+                      Loading swaps…
+                    </p>
+                  ) : receivedSwaps.length === 0 ? (
+                    <p className="text-muted-foreground text-center">
+                      No received requests.
+                    </p>
                   ) : (
-                    swaps.receivedSwaps.map((swap) => (
+                    receivedSwaps.map(swap => (
                       <SwapRequestCard
-                      type="received"
                         key={swap._id}
+                        type="received"
                         {...swap}
-                        onAccept={() => handleAccept(swap._id)}
-                        onReject={() => handleReject(swap._id)}
+                        onAccept={() =>
+                          handleUpdate(swap._id, "accepted")
+                        }
+                        onReject={() =>
+                          handleUpdate(swap._id, "rejected")
+                        }
                         onMessage={() => handleMessage(swap._id)}
                       />
                     ))
                   )}
                 </TabsContent>
 
+                {/* SENT */}
                 <TabsContent value="sent" className="mt-6 space-y-4">
-                  {swaps.sentSwaps.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No sent requests yet.</p>
-                    </div>
+                  {sentSwaps.length === 0 ? (
+                    <p className="text-muted-foreground text-center">
+                      No sent requests.
+                    </p>
                   ) : (
-                    swaps.sentSwaps.map((swap) => (
+                    sentSwaps.map(swap => (
                       <SwapRequestCard
                         key={swap._id}
                         type="sent"
                         {...swap}
-                        onCancel={() => handleCancel(swap._id)}
+                        onCancel={() =>
+                          handleUpdate(swap._id, "cancelled")
+                        }
                         onMessage={() => handleMessage(swap._id)}
                       />
                     ))

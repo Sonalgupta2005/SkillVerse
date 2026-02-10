@@ -4,17 +4,24 @@ exports.getUsers = async (req, res, next) => {
   try {
     const { skill, page = 1, limit = 6, search } = req.query;
 
-    let query = { profileVisibility: 'public', banned: false };
-
-    // Support multiple skills: ?skill=React&skill=Excel
-    if (skill) {
-      if (Array.isArray(skill)) {
-        query.skillsOffered = { $in: skill };
-      } else {
-        query.skillsOffered = skill;
-      }
+    let query = {
+      profileVisibility: 'public',
+      banned: false
+    };
+    console.log("Query Params:", req.user);
+    // 🔥 EXCLUDE LOGGED-IN USER
+    if (req.user && req.user._id) {
+      query._id = { $ne: req.user._id };
     }
 
+    // Skill filter
+    if (skill) {
+      query.skillsOffered = Array.isArray(skill)
+        ? { $in: skill }
+        : skill;
+    }
+
+    // Search filter
     if (search) {
       query.$or = [
         { name: new RegExp(search, 'i') },
@@ -27,7 +34,7 @@ exports.getUsers = async (req, res, next) => {
     const users = await User.find(query)
       .select('-password -email')
       .skip((page - 1) * limit)
-      .limit(parseInt(limit))
+      .limit(Number(limit))
       .lean();
 
     const total = await User.countDocuments(query);
@@ -43,6 +50,7 @@ exports.getUsers = async (req, res, next) => {
     next(err);
   }
 };
+
 
 
 exports.getUserById = async (req, res, next) => {

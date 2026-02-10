@@ -23,9 +23,8 @@ export const Header = () => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">S</span>
-              </div>
+                <img className="w-12 h-12 rounded-full" src="./logo2.png"></img>
+              
               <span className="text-xl font-bold text-foreground">SkillVerse</span>
             </Link>
 

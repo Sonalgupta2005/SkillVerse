@@ -4,6 +4,7 @@ const userController = require('../controllers/userController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const { body, query } = require('express-validator');
 const validateMiddleware = require('../middlewares/validateMiddleware');
+const optionalauth = require('../middlewares/optionalauth');
 
 router.get('/',
   [
@@ -13,6 +14,7 @@ router.get('/',
     query('search').optional().isString(),
   ],
   validateMiddleware,
+  optionalauth,
   // authMiddleware,
   userController.getUsers
 );

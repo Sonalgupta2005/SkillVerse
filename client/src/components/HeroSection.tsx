@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, BookOpen, Star } from "lucide-react";
 import heroImage from "@/assets/hero-skillverse.jpg";
+import { useNavigate } from "react-router-dom";
 
 export const HeroSection = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative py-20 overflow-hidden">
       {/* Background gradient */}
@@ -43,7 +46,7 @@ export const HeroSection = () => {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button variant="hero" size="xl" className="group">
+              <Button onClick={()=>navigate("/browse")} variant="hero" size="xl" className="group">
                 Start Sharing Skills
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>

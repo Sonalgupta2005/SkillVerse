@@ -7,8 +7,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { RequestSwapForm } from "@/components/RequestSwapForm";
-import { apiService } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
+// import { useToast } from "@/hooks/use-toast";
+import { useChat } from "@/contexts/ChatContext";
 
 interface Skill {
   name: string;
@@ -27,6 +27,9 @@ interface ProfileCardProps {
   bio?: string;
   completedSwaps: number;
   isOwnProfile?: boolean;
+  swapId?: string;
+  swapStatus?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+
 }
 
 export const ProfileCard = ({ 
@@ -40,13 +43,15 @@ export const ProfileCard = ({
   availability, 
   bio,
   completedSwaps,
-  isOwnProfile = false 
+  isOwnProfile = false ,
+  swapId,
+  swapStatus
 }: ProfileCardProps) => {
   const { isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSwapForm, setShowSwapForm] = useState(false);
-  const { toast } = useToast();
-
+  const { openChat } = useChat();
+  console.log('Rendering ProfileCard for:', name,swapId,swapStatus);
   const handleRequestSwap = () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
@@ -55,34 +60,15 @@ export const ProfileCard = ({
     }
   };
 
-  const handleMessage = async () => {
-    if (!isAuthenticated) {
-      setShowAuthModal(true);
-    } else {
-      // TODO: Connect to your backend API
-      const result = await apiService.sendMessage(id, `Hi ${name}!`);
-      if (result.success) {
-        toast({
-          title: "Message Sent",
-          description: `Your message has been sent to ${name}.`,
-        });
-      } else {
-        toast({
-          title: "Error", 
-          description: result.message,
-          variant: "destructive",
-        });
-      }
-    }
-  };
+  
 
   return (
     <>
     <Card className="shadow-medium hover:shadow-large transition-smooth">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-4">
-            <Avatar className="w-16 h-16">
+          <div className="flex space-x-4">
+            <Avatar>
               <AvatarImage src={avatar} alt={name} />
               <AvatarFallback className="bg-primary text-primary-foreground text-lg">
                 {name.split(' ').map(n => n[0]).join('')}
@@ -97,27 +83,53 @@ export const ProfileCard = ({
                 </div>
               )}
               <div className="flex items-center space-x-4">
-                <div className="flex items-center text-sm">
+                {rating > 0 && <div className="flex items-center text-sm">
                   <Star className="h-4 w-4 text-warning mr-1 fill-current" />
                   <span className="font-medium">{rating}</span>
-                </div>
+                </div>}
+                
                 <div className="text-sm text-muted-foreground">
-                  {completedSwaps} swaps completed
+                  {completedSwaps > 0 ? `(${completedSwaps})` : ''}
                 </div>
               </div>
             </div>
           </div>
           {!isOwnProfile && (
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm" onClick={handleMessage}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Message
-              </Button>
-              <Button size="sm" onClick={handleRequestSwap}>
-                <Calendar className="h-4 w-4 mr-2" />
-                Request Swap
-              </Button>
-            </div>
+            <div className="flex space-x-2 items-center">
+
+  {/* PENDING */}
+  {swapStatus === 'pending' && (
+    <Badge variant="secondary">Pending</Badge>
+  )}
+
+  {/* ACCEPTED → CHAT ENABLED */}
+  {swapStatus === 'accepted' && swapId && (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={() => openChat(id)}
+    >
+      <MessageSquare className="h-4 w-4" />
+    </Button>
+  )}
+
+  {/* REJECTED / CANCELLED */}
+  {(swapStatus === 'rejected' || swapStatus === 'cancelled') && (
+    <Badge variant="destructive">
+      {swapStatus.toUpperCase()}
+    </Badge>
+  )}
+
+  {/* NO SWAP → REQUEST */}
+  {!swapStatus && (
+    <Button size="sm" onClick={handleRequestSwap}>
+      <Calendar className="h-4 w-4" />
+      Request Swap
+    </Button>
+  )}
+
+</div>
+
           )}
         </div>
       </CardHeader>
@@ -140,7 +152,7 @@ export const ProfileCard = ({
             {skillsOffered.map((skill, index) => (
               <Badge 
                 key={index} 
-                variant="secondary" 
+                variant="outline" 
                 className="skill-tag skill-tag-offered px-3 py-1.5"
               >
                 {skill.name}

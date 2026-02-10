@@ -11,12 +11,15 @@ import Profile from "./pages/Profile";
 import MySwaps from "./pages/MySwaps";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import { ChatProvider } from "./contexts/ChatContext";
+import ChatPopup from "./components/ChatPopup";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <ChatProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -44,8 +47,10 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <ChatPopup/>
         </BrowserRouter>
       </TooltipProvider>
+      </ChatProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

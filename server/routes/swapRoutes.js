@@ -35,7 +35,7 @@ router.put(
   auth,
   [
     param('id').isMongoId().withMessage('Swap ID must be valid'),
-    body('status').optional().isIn(['pending', 'accepted', 'rejected']).withMessage('Invalid status'),
+    body('status').optional().isIn(['pending', 'accepted', 'rejected', 'cancelled']).withMessage('Invalid status'),
   ],
   validate,
   updateSwapRequest
