@@ -28,7 +28,7 @@ interface ProfileCardProps {
   completedSwaps: number;
   isOwnProfile?: boolean;
   swapId?: string;
-  swapStatus?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  status?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
 
 }
 
@@ -45,13 +45,13 @@ export const ProfileCard = ({
   completedSwaps,
   isOwnProfile = false ,
   swapId,
-  swapStatus
+  status
 }: ProfileCardProps) => {
   const { isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSwapForm, setShowSwapForm] = useState(false);
   const { openChat } = useChat();
-  console.log('Rendering ProfileCard for:', name,swapId,swapStatus);
+  console.log('Rendering ProfileCard for:', name,swapId,status);
   const handleRequestSwap = () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
@@ -98,12 +98,12 @@ export const ProfileCard = ({
             <div className="flex space-x-2 items-center">
 
   {/* PENDING */}
-  {swapStatus === 'pending' && (
+  {status === 'pending' && (
     <Badge variant="secondary">Pending</Badge>
   )}
 
   {/* ACCEPTED → CHAT ENABLED */}
-  {swapStatus === 'accepted' && swapId && (
+  {status === 'accepted' && swapId && (
     <Button
       variant="outline"
       size="sm"
@@ -114,14 +114,14 @@ export const ProfileCard = ({
   )}
 
   {/* REJECTED / CANCELLED */}
-  {(swapStatus === 'rejected' || swapStatus === 'cancelled') && (
+  {(status === 'rejected' || status === 'cancelled') && (
     <Badge variant="destructive">
-      {swapStatus.toUpperCase()}
+      {status.toUpperCase()}
     </Badge>
   )}
 
   {/* NO SWAP → REQUEST */}
-  {!swapStatus && (
+  {!status && (
     <Button size="sm" onClick={handleRequestSwap}>
       <Calendar className="h-4 w-4" />
       Request Swap

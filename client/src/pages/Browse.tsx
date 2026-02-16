@@ -52,15 +52,22 @@ const Browse = () => {
   };
 
   const getSwapForProfile = (profileId: string) => {
-    return swaps.find(swap => {
-      const otherUserId =
-        swap.fromUser._id === user?._id
-          ? swap.toUser._id
-          : swap.fromUser._id;
+  console.log(swaps);
+  return swaps.find(swap => {
+    const currentUserId = user?._id?.toString();
+    const fromUserId = swap.fromUser?._id?.toString();
+    const toUserId = swap.toUser.toString();
+    const targetProfileId = profileId?.toString();
+    console.log(fromUserId, toUserId, currentUserId);
+    const otherUserId =
+      fromUserId === currentUserId
+        ? toUserId
+        : fromUserId;
 
-      return otherUserId === profileId;
-    });
-  };
+    return otherUserId === targetProfileId;
+  });
+};
+
 
   const visibleProfiles = user
     ? profiles.filter(p => p._id !== user._id)
@@ -120,7 +127,7 @@ const Browse = () => {
                   const swap = user
                     ? getSwapForProfile(profile._id)
                     : null;
-
+                  console.log(swap);
                   return (
                     <ProfileCard
                       key={profile._id}
@@ -135,7 +142,7 @@ const Browse = () => {
                       bio={profile.bio}
                       completedSwaps={profile.completedSwaps}
                       swapId={swap?._id}
-                      swapStatus={swap?.status}
+                      status={swap?.status}
                     />
                   );
                 })}
