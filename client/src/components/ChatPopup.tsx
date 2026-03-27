@@ -30,7 +30,7 @@ const ChatPopup = () => {
     apiService.getMessagesBySwapId(activeSwapId).then(setMessages);
 
     // Bind WebSocket
-    const socket: Socket = io("http://localhost:5000", {
+    const socket: Socket = io("https://skillverse-nakl.onrender.com", {
       withCredentials: true,
     });
 
