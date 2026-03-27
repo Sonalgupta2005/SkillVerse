@@ -16,7 +16,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:8080', 
+    origin: ['http://localhost:8080','https://skill-verse-vert.vercel.app'], 
     credentials: true
 }));
 
