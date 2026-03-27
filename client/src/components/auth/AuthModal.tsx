@@ -31,12 +31,16 @@ export const AuthModal = ({ isOpen, onClose, defaultTab = 'signin' }: AuthModalP
     email: '',
     password: '',
     confirmPassword: '',
-    location: ''
+    location: '',
+    offeredSkillName: '',
+    offeredSkillLevel: 'Beginner',
+    wantedSkillName: '',
+    wantedSkillLevel: 'Beginner'
   });
 
   const resetForms = () => {
     setSigninForm({ email: '', password: '' });
-    setSignupForm({ name: '', email: '', password: '', confirmPassword: '', location: '' });
+    setSignupForm({ name: '', email: '', password: '', confirmPassword: '', location: '', offeredSkillName: '', offeredSkillLevel: 'Beginner', wantedSkillName: '', wantedSkillLevel: 'Beginner' });
     setShowPassword(false);
   };
 
@@ -73,10 +77,10 @@ export const AuthModal = ({ isOpen, onClose, defaultTab = 'signin' }: AuthModalP
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signupForm.name || !signupForm.email || !signupForm.password) {
+    if (!signupForm.name || !signupForm.email || !signupForm.password || !signupForm.offeredSkillName || !signupForm.wantedSkillName) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including your skills",
         variant: "destructive"
       });
       return;
@@ -104,7 +108,9 @@ export const AuthModal = ({ isOpen, onClose, defaultTab = 'signin' }: AuthModalP
       name: signupForm.name,
       email: signupForm.email,
       password: signupForm.password,
-      location: signupForm.location || undefined
+      location: signupForm.location || undefined,
+      skillsOffered: [{ name: signupForm.offeredSkillName, level: signupForm.offeredSkillLevel }],
+      skillsWanted: [{ name: signupForm.wantedSkillName, level: signupForm.wantedSkillLevel }]
     });
     
     if (result.success) {
@@ -125,7 +131,7 @@ export const AuthModal = ({ isOpen, onClose, defaultTab = 'signin' }: AuthModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">
             Welcome to{" "}
@@ -259,6 +265,58 @@ export const AuthModal = ({ isOpen, onClose, defaultTab = 'signin' }: AuthModalP
                       value={signupForm.location}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, location: e.target.value }))}
                     />
+                  </div>
+
+                  <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-offered-skill">Skill to Offer *</Label>
+                        <Input
+                          id="signup-offered-skill"
+                          placeholder="e.g. Graphic Design"
+                          value={signupForm.offeredSkillName}
+                          onChange={(e) => setSignupForm(prev => ({ ...prev, offeredSkillName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Level</Label>
+                        <select 
+                          className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-background border-input" 
+                          value={signupForm.offeredSkillLevel} 
+                          onChange={(e) => setSignupForm(prev => ({ ...prev, offeredSkillLevel: e.target.value }))}
+                        >
+                          <option value="Beginner">Beginner</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Advanced">Advanced</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="signup-wanted-skill">Skill to Learn *</Label>
+                        <Input
+                          id="signup-wanted-skill"
+                          placeholder="e.g. Python"
+                          value={signupForm.wantedSkillName}
+                          onChange={(e) => setSignupForm(prev => ({ ...prev, wantedSkillName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Level</Label>
+                        <select 
+                          className="w-full h-10 px-3 py-2 border rounded-md text-sm bg-background border-input" 
+                          value={signupForm.wantedSkillLevel} 
+                          onChange={(e) => setSignupForm(prev => ({ ...prev, wantedSkillLevel: e.target.value }))}
+                        >
+                          <option value="Beginner">Beginner</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Advanced">Advanced</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

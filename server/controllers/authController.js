@@ -34,7 +34,7 @@ exports.signup = async (req, res, next) => {
         success: true,
         message: "Signup successful",
         user: {
-        id: user._id, name: user.name, email: user.email, role: user.role,
+        _id: user._id, id: user._id, name: user.name, email: user.email, role: user.role,
         location: user.location, skillsOffered: user.skillsOffered, skillsWanted: user.skillsWanted,
         availability: user.availability, profileVisibility: user.profileVisibility, banned: user.banned,
       }
@@ -69,7 +69,7 @@ exports.login = async (req, res, next) => {
       success: true,
       message: "Signin successful",
       user: {
-        id: user._id, name: user.name, email: user.email, role: user.role,
+        _id: user._id, id: user._id, name: user.name, email: user.email, role: user.role,
         location: user.location, skillsOffered: user.skillsOffered, skillsWanted: user.skillsWanted,
         availability: user.availability, profileVisibility: user.profileVisibility, banned: user.banned,
       }

@@ -63,6 +63,15 @@ const Profile = () => {
   const [newAvailability, setNewAvailability]=useState("");
 
   const handleSave = async () => {
+    if (profileData.skillsOffered.length === 0 || profileData.skillsWanted.length === 0) {
+      toast({
+        title: "Missing Skills",
+        description: "Please add at least one skill you can offer and one skill you want to learn.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUpdating(true);
 
     const updateData = {

@@ -9,33 +9,30 @@ import { ArrowUpDown, Clock, CheckCircle, Users } from "lucide-react";
 import { useMySwaps } from "@/hooks/useMySwaps";
 import { useUpdateSwap } from "@/hooks/useUpdateSwap";
 import { useAuth } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
 
 export type SwapStatus = "pending" | "accepted" | "rejected" | "cancelled";
 const MySwaps = () => {
   const [activeTab, setActiveTab] = useState<"received" | "sent">("received");
+  const { openChat } = useChat();
 
   /* =======================
      DATA (SINGLE SOURCE)
      ======================= */
-  const { data: swaps = [], isLoading } = useMySwaps();
+  const { data = { sentSwaps: [], receivedSwaps: [] }, isLoading } = useMySwaps();
   const { mutate: updateSwap } = useUpdateSwap();
 
-  const {user}=useAuth();
-  const sentSwaps = swaps.filter(
-    swap => swap.fromUser._id === user?._id
-  );
-
-  const receivedSwaps = swaps.filter(
-    swap => swap.toUser._id === user?._id
-  );
+  const sentSwaps = data.sentSwaps || [];
+  const receivedSwaps = data.receivedSwaps || [];
+  const allSwaps = [...sentSwaps, ...receivedSwaps];
 
   /* =======================
      STATS
      ======================= */
   const stats = {
-    total: swaps.length,
-    pending: swaps.filter(s => s.status === "pending").length,
-    completed: swaps.filter(s => s.status === "accepted").length
+    total: allSwaps.length,
+    pending: allSwaps.filter((s: any) => s.status === "pending").length,
+    completed: allSwaps.filter((s: any) => s.status === "accepted" || s.status === "completed").length
   };
 
   /* =======================
@@ -45,8 +42,8 @@ const MySwaps = () => {
     updateSwap({ id, status });
   };
 
-  const handleMessage = (swapId: string) => {
-    console.log(`Open chat for swap ${swapId}`);
+  const handleMessage = (swapId: string, receiverName: string) => {
+    openChat(swapId, receiverName);
   };
 
   /* =======================
@@ -130,7 +127,7 @@ const MySwaps = () => {
                 </TabsList>
 
                 {/* RECEIVED */}
-                <TabsContent value="received" className="mt-6 space-y-4">
+                <TabsContent value="received" className="mt-8 space-y-6 max-w-5xl mx-auto">
                   {isLoading ? (
                     <p className="text-muted-foreground text-center">
                       Loading swaps…
@@ -140,39 +137,43 @@ const MySwaps = () => {
                       No received requests.
                     </p>
                   ) : (
-                    receivedSwaps.map(swap => (
+                    receivedSwaps.map((swap: any) => (
                       <SwapRequestCard
                         key={swap._id}
                         type="received"
                         {...swap}
+                        requesterName={swap.fromUser?.name || 'Unknown User'}
+                        requesterAvatar={swap.fromUser?.profilePhoto || swap.fromUser?.avatar}
                         onAccept={() =>
                           handleUpdate(swap._id, "accepted")
                         }
                         onReject={() =>
                           handleUpdate(swap._id, "rejected")
                         }
-                        onMessage={() => handleMessage(swap._id)}
+                        onMessage={() => handleMessage(swap._id, swap.fromUser?.name || 'Unknown User')}
                       />
                     ))
                   )}
                 </TabsContent>
 
                 {/* SENT */}
-                <TabsContent value="sent" className="mt-6 space-y-4">
+                <TabsContent value="sent" className="mt-8 space-y-6 max-w-5xl mx-auto">
                   {sentSwaps.length === 0 ? (
                     <p className="text-muted-foreground text-center">
                       No sent requests.
                     </p>
                   ) : (
-                    sentSwaps.map(swap => (
+                    sentSwaps.map((swap: any) => (
                       <SwapRequestCard
                         key={swap._id}
                         type="sent"
                         {...swap}
+                        requesterName={swap.toUser?.name || 'Unknown User'}
+                        requesterAvatar={swap.toUser?.profilePhoto || swap.toUser?.avatar}
                         onCancel={() =>
                           handleUpdate(swap._id, "cancelled")
                         }
-                        onMessage={() => handleMessage(swap._id)}
+                        onMessage={() => handleMessage(swap._id, swap.toUser?.name || 'Unknown User')}
                       />
                     ))
                   )}

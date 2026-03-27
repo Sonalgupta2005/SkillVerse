@@ -13,11 +13,13 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import { ChatProvider } from "./contexts/ChatContext";
 import ChatPopup from "./components/ChatPopup";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme" attribute="class">
     <AuthProvider>
       <ChatProvider>
       <TooltipProvider>
@@ -52,6 +54,7 @@ const App = () => (
       </TooltipProvider>
       </ChatProvider>
     </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

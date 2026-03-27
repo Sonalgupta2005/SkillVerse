@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { User, apiService } from '@/services/api';
 
 interface AuthContextType {
@@ -6,7 +7,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signin: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  signup: (userData: { email: string; password: string; name: string; location?: string }) => Promise<{ success: boolean; message: string }>;
+  signup: (userData: { email: string; password: string; name: string; location?: string; skillsOffered?: {name: string; level: string}[]; skillsWanted?: {name: string; level: string}[] }) => Promise<{ success: boolean; message: string }>;
   signout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<{ success: boolean; message: string }>;
   toggleProfileVisibility: (isPublic: boolean) => Promise<{ success: boolean; message: string }>;
@@ -23,6 +24,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: response.success, message: response.message };
   };
 
-  const signup = async (userData: { email: string; password: string; name: string; location?: string }) => {
+  const signup = async (userData: { email: string; password: string; name: string; location?: string; skillsOffered?: {name: string; level: string}[]; skillsWanted?: {name: string; level: string}[] }) => {
     setIsLoading(true);
     const response = await apiService.signup(userData);
     
@@ -72,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     await apiService.signout();
     setUser(null);
+    queryClient.clear();
     setIsLoading(false);
   };
 

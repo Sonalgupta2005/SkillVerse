@@ -6,10 +6,10 @@ export const useMySwaps = () => {
     queryKey: ["my-swaps"],
     queryFn: async () => {
       const data = await apiService.getMySwaps();
-      return [
-        ...(data.sentSwaps || []),
-        ...(data.receivedSwaps || [])
-      ];
+      return {
+        sentSwaps: data.sentSwaps || [],
+        receivedSwaps: data.receivedSwaps || []
+      };
     },
     staleTime: 1000 * 30 // 30s
   });

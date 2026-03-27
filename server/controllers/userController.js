@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const SwapRequest = require('../models/SwapRequest');
 
 exports.getUsers = async (req, res, next) => {
   try {
@@ -14,11 +15,33 @@ exports.getUsers = async (req, res, next) => {
       query._id = { $ne: req.user._id };
     }
 
+    const categorySkillMap = {
+      "Technology": ["Web Development", "React", "Node.js", "Python", "Programming", "HTML", "CSS", "Javascript", "App Development", "SQL", "Java", "C++"],
+      "Music": ["Guitar", "Piano", "Singing", "Music Production", "Violin", "Drums", "Vocals", "Songwriting", "Bass", "Flute"],
+      "Languages": ["Spanish", "French", "German", "English", "Japanese", "Mandarin", "Italian", "Korean", "Russian", "Arabic"],
+      "Arts & Crafts": ["Graphic Design", "Drawing", "Painting", "Illustration", "Sculpting", "Digital Art", "Calligraphy", "Origami", "Knitting"],
+      "Sports & Fitness": ["Yoga", "Personal Training", "Tennis", "Swimming", "Martial Arts", "Boxing", "Running", "Dance", "Dancing", "Pilates"],
+      "Business": ["Marketing", "Excel", "Data Analysis", "Public Speaking", "Management", "Digital Marketing", "Accounting", "Leadership", "SEO", "Sales", "Finance", "Investment"],
+      "Cooking": ["Cooking", "Baking", "Culinary Arts", "Vegan Cooking", "Desserts", "Sushi Making", "Italian Cuisine", "Meal Prep"],
+      "Photography": ["Photography", "Photo Editing", "Videography", "Photoshop", "Lightroom", "Video Editing", "Cinematography", "Portrait Photography"],
+      "Writing": ["Writing", "Copywriting", "Creative Writing", "Blogging", "Proofreading", "Journalism", "Content Writing", "Poetry"],
+      "Health & Wellness": ["Meditation", "Nutrition", "Life Coaching", "Mental Health", "Mindfulness", "First Aid", "Massage Therapy"]
+    };
+
+    let skillsArray = skill ? (Array.isArray(skill) ? skill : [skill]) : [];
+    
+    const categoriesArray = req.query.category ? (Array.isArray(req.query.category) ? req.query.category : [req.query.category]) : [];
+    
+    categoriesArray.forEach(cat => {
+      if (categorySkillMap[cat]) {
+        skillsArray = skillsArray.concat(categorySkillMap[cat]);
+      }
+    });
+
     // Skill filter
-    if (skill) {
-      query.skillsOffered = Array.isArray(skill)
-        ? { $in: skill }
-        : skill;
+    if (skillsArray.length > 0) {
+      const regexStr = skillsArray.map(s => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|');
+      query['skillsOffered.name'] = new RegExp(`(${regexStr})`, 'i');
     }
 
     // Search filter
@@ -26,8 +49,8 @@ exports.getUsers = async (req, res, next) => {
       query.$or = [
         { name: new RegExp(search, 'i') },
         { location: new RegExp(search, 'i') },
-        { skillsOffered: new RegExp(search, 'i') },
-        { skillsWanted: new RegExp(search, 'i') },
+        { 'skillsOffered.name': new RegExp(search, 'i') },
+        { 'skillsWanted.name': new RegExp(search, 'i') },
       ];
     }
 
@@ -39,12 +62,47 @@ exports.getUsers = async (req, res, next) => {
 
     const total = await User.countDocuments(query);
 
+    let usersWithSwapInfo = users;
+
+    if (req.user && req.user._id) {
+      const currentUserId = req.user._id;
+      const userIds = users.map(u => u._id);
+
+      const swaps = await SwapRequest.find({
+        $or: [
+          { fromUser: currentUserId, toUser: { $in: userIds } },
+          { toUser: currentUserId, fromUser: { $in: userIds } }
+        ]
+      }).sort({ createdAt: -1 }).lean();
+
+      // map swaps to their counterpart user
+      const swapMapping = {};
+      for (const swap of swaps) {
+        const counterpartId = swap.fromUser.toString() === currentUserId.toString()
+          ? swap.toUser.toString()
+          : swap.fromUser.toString();
+
+        if (!swapMapping[counterpartId]) {
+          swapMapping[counterpartId] = {
+            swapId: swap._id,
+            swapStatus: swap.status,
+            swapUpdatedAt: swap.updatedAt
+          };
+        }
+      }
+
+      usersWithSwapInfo = users.map(u => ({
+        ...u,
+        ...(swapMapping[u._id.toString()] || {})
+      }));
+    }
+
     res.json({
       success: true,
       page: Number(page),
       pages: Math.ceil(total / limit),
       total,
-      users
+      users: usersWithSwapInfo
     });
   } catch (err) {
     next(err);

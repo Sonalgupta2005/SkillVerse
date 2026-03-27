@@ -8,7 +8,7 @@ const optionalauth = require('../middlewares/optionalauth');
 
 router.get('/',
   [
-    query('skill').optional().isString(),
+    query('skill').optional(),
     query('page').optional().isInt({min:1}),
     query('limit').optional().isInt({min:1,max:100}),
     query('search').optional().isString(),

@@ -49,14 +49,24 @@ const createSwapRequest = async (req, res) => {
 
   // 4️⃣ Enforce rules
   if (existingSwap) {
-    // ❌ Permanent block
-    if (['pending', 'accepted', 'rejected'].includes(existingSwap.status)) {
+    // ❌ Permanent block (pending / accepted)
+    if (['pending', 'accepted'].includes(existingSwap.status)) {
       return res.status(409).json({
-        message:
-          existingSwap.status === 'rejected'
-            ? 'This swap request was declined and cannot be resent'
-            : 'A swap request for this skill exchange already exists'
+        message: 'A swap request for this skill exchange already exists'
       });
+    }
+
+    // ⏳ Rejected → 15 day cooldown
+    if (existingSwap.status === 'rejected') {
+      const REJECTED_COOLDOWN_DAYS = 15;
+      const cooldownMs = REJECTED_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+      const elapsed = Date.now() - new Date(existingSwap.updatedAt).getTime();
+
+      if (elapsed < cooldownMs) {
+        return res.status(429).json({
+          message: `This swap request was declined. You can resend it after 15 days.`
+        });
+      }
     }
 
     // ⏳ Cancelled → cooldown
@@ -96,9 +106,14 @@ const createSwapRequest = async (req, res) => {
 // GET /api/swaps/me - Get all swap requests related to current user
 const getMySwaps = async (req, res) => {
   const sentSwaps = await SwapRequest.find({ fromUser: req.user._id })
-  .populate('fromUser', 'name profilePhoto') .sort({ createdAt: -1 });
+  .populate('fromUser', 'name profilePhoto')
+  .populate('toUser', 'name profilePhoto')
+  .sort({ createdAt: -1 });
+  
   const receivedSwaps = await SwapRequest.find({ toUser: req.user._id })
-  .populate('toUser', 'name profilePhoto') .sort({ createdAt: -1 });
+  .populate('fromUser', 'name profilePhoto')
+  .populate('toUser', 'name profilePhoto')
+  .sort({ createdAt: -1 });
   res.json({sentSwaps,receivedSwaps});
 };
 

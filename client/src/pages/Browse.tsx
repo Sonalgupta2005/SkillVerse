@@ -3,13 +3,15 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { SkillSearch } from "@/components/SkillSearch";
 import { ProfileCard } from "@/components/ProfileCard";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMySwaps } from "@/hooks/useMySwaps";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiService } from "@/services/api";
 
 const Browse = () => {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [page, setPage] = useState(1);
 
   const { user, isLoading } = useAuth();
@@ -21,10 +23,11 @@ const Browse = () => {
     data: profilesData,
     isFetching: profilesLoading
   } = useQuery({
-    queryKey: ["public-profiles", selectedSkills, page],
+    queryKey: ["public-profiles", selectedSkills, selectedCategories, page],
     queryFn: () =>
       apiService.getPublicProfiles({
         skills: selectedSkills,
+        categories: selectedCategories,
         page
       }),
     enabled: !isLoading,
@@ -33,11 +36,6 @@ const Browse = () => {
 
   const profiles = profilesData?.users || [];
   const totalPages = profilesData?.pages || 1;
-
-  /* =======================
-     FETCH SWAPS (QUERY)
-     ======================= */
-  const { data: swaps = [] } = useMySwaps();
 
   /* =======================
      HELPERS
@@ -51,27 +49,25 @@ const Browse = () => {
     setPage(1);
   };
 
-  const getSwapForProfile = (profileId: string) => {
-  console.log(swaps);
-  return swaps.find(swap => {
-    const currentUserId = user?._id?.toString();
-    const fromUserId = swap.fromUser?._id?.toString();
-    const toUserId = swap.toUser.toString();
-    const targetProfileId = profileId?.toString();
-    console.log(fromUserId, toUserId, currentUserId);
-    const otherUserId =
-      fromUserId === currentUserId
-        ? toUserId
-        : fromUserId;
+  const handleCategorySelect = (cat: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+    setPage(1);
+  };
 
-    return otherUserId === targetProfileId;
+  const handleClearSkills = () => {
+    setSelectedSkills([]);
+    setSelectedCategories([]);
+    setPage(1);
+  };
+
+
+  const visibleProfiles = profiles.filter(p => {
+    if (!user) return true;
+    const currentUserId = user._id || user.id;
+    return String(p._id) !== String(currentUserId);
   });
-};
-
-
-  const visibleProfiles = user
-    ? profiles.filter(p => p._id !== user._id)
-    : profiles;
 
   /* =======================
      RENDER
@@ -100,6 +96,9 @@ const Browse = () => {
             <SkillSearch
               onSkillSelect={handleSkillSelect}
               selectedSkills={selectedSkills}
+              onCategorySelect={handleCategorySelect}
+              selectedCategories={selectedCategories}
+              onClearSkills={handleClearSkills}
             />
           </div>
 
@@ -124,10 +123,6 @@ const Browse = () => {
             ) : (
               <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {visibleProfiles.map(profile => {
-                  const swap = user
-                    ? getSwapForProfile(profile._id)
-                    : null;
-                  console.log(swap);
                   return (
                     <ProfileCard
                       key={profile._id}
@@ -141,8 +136,9 @@ const Browse = () => {
                       availability={profile.availability}
                       bio={profile.bio}
                       completedSwaps={profile.completedSwaps}
-                      swapId={swap?._id}
-                      status={swap?.status}
+                      swapId={profile.swapId}
+                      status={profile.swapStatus}
+                      swapUpdatedAt={profile.swapUpdatedAt}
                     />
                   );
                 })}
@@ -151,24 +147,26 @@ const Browse = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex justify-center gap-4 mt-4">
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 disabled:opacity-50"
+              <div className="flex justify-center items-center gap-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="icon"
                   disabled={page === 1}
                   onClick={() => setPage(p => Math.max(p - 1, 1))}
                 >
-                  Previous
-                </button>
-                <span className="px-4 py-2">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="px-4 py-2 text-sm font-medium">
                   Page {page} of {totalPages}
                 </span>
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 disabled:opacity-50"
+                <Button
+                  variant="outline"
+                  size="icon"
                   disabled={page === totalPages}
                   onClick={() => setPage(p => Math.min(p + 1, totalPages))}
                 >
-                  Next
-                </button>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>

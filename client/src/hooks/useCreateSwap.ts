@@ -17,6 +17,8 @@ export const useCreateSwap = () => {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-swaps"] });
+      queryClient.invalidateQueries({ queryKey: ["public-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["user-profile"] });
     }
   });
 };

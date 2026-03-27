@@ -12,7 +12,7 @@ module.exports = async function assertSwapAccess(swapId, userId) {
   }
 
   const isParticipant =
-    swap.sender.equals(userId) || swap.receiver.equals(userId);
+    swap.fromUser.equals(userId) || swap.toUser.equals(userId);
 
   if (!isParticipant) {
     throw { status: 403, message: "Not allowed" };

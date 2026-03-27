@@ -36,6 +36,14 @@ exports.sendMessage = async (req, res, next) => {
       content
     });
 
+    await message.populate("sender", "name avatar");
+
+    // Broadcast the real-time message to active listeners
+    const io = req.app.get('io');
+    if (io) {
+      io.to(swapId).emit('newMessage', message);
+    }
+
     res.status(201).json({ success: true, message });
   } catch (err) {
     next(err);

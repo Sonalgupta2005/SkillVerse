@@ -24,6 +24,9 @@ export interface User {
   banned: boolean;
   createdAt: string;
   updatedAt: string;
+  swapId?: string;
+  swapStatus?: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  swapUpdatedAt?: string;
 }
 
 export interface AuthResponse {
@@ -36,6 +39,7 @@ export interface Message {
   swapId: string;
   sender: {
     _id: string;
+    id?: string;
     name: string;
     avatar?: string;
   };
@@ -59,8 +63,8 @@ class ApiService {
     name: string;
     location?: string;
     profilePhoto?: string;
-    skillsOffered?: string[];
-    skillsWanted?: string[];
+    skillsOffered?: {name: string; level: string}[];
+    skillsWanted?: {name: string; level: string}[];
     availability?: string;
   }): Promise<AuthResponse> {
     try {
@@ -164,6 +168,7 @@ class ApiService {
   // Adjust query to support multiple skills and location search
  async getPublicProfiles(filters?: {
   skills?: string[];
+  categories?: string[];
   location?: string;
   search?: string;
   page?: number;
@@ -175,6 +180,10 @@ class ApiService {
     // Support multiple skill filters
     if (filters?.skills && filters.skills.length > 0) {
       filters.skills.forEach(skill => params.append('skill', skill));
+    }
+
+    if (filters?.categories && filters.categories.length > 0) {
+      filters.categories.forEach(category => params.append('category', category));
     }
 
     if (filters?.location) {
